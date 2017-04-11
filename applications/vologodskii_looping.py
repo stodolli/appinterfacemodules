@@ -1,3 +1,7 @@
+"""
+    Stefjord Todolli
+    April 9, 2017
+"""
 
 import numpy as np
 import argparse
