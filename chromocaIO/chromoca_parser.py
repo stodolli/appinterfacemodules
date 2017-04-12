@@ -38,8 +38,9 @@ def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_ini
     writer.write("dna_model_preset=plain_B-DNA")
     writer.write("potential_settings_preset=" + potential_preset)
     writer.write("\n# other parameters")
-    for key, arg in kwargs.items():
-        writer.write("{0:s}={1:s}".format(key, arg))
+    if kwargs is not None:
+        for key, arg in kwargs.items():
+            writer.write("{0:s}={1:s}".format(key, arg))
     writer.close()
 
 
@@ -53,6 +54,7 @@ def read_sim_input_file(input_filename):
     """
     reader = open(input_filename)
     sim_lines = reader.readlines()
+    reader.close()
     keyvalue_pairs = {}
     for line in [l for l in sim_lines if "=" in l]:
         splitline = line.split("=")
