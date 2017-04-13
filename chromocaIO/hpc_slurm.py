@@ -3,9 +3,6 @@
     April 11, 2017
 """
 
-import argparse
-
-
 def write_slurm_submission_file(sbatch_file_name, job_name, walltime, memory, run_command_lines, processors=1,
                                 partition="main", **kwargs):
     """Create a Slurm job submission file based on resource requirements and the set of commands that need to be run.
@@ -53,10 +50,3 @@ def read_slurm_submission_file(sbatch_file_name):
         slurm_parameters[splitline[0]] = splitline[1]
     run_command_lines = [l for l in sbatch_lines if ("#" not in l and len(l) > 1)]
     return (slurm_parameters, run_command_lines)
-
-
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--job-type")

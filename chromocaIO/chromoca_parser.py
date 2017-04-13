@@ -7,7 +7,7 @@ import numpy as np
 
 
 def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_init_config, mc_amplitude,
-                         potential_preset, eed_filter, **kwargs):
+                         potential_preset, eed_filter=None, **kwargs):
     """Generate a ChroMoCa input file from the specified parameters.
 
     :type sim_name: str
@@ -19,28 +19,28 @@ def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_ini
     :type potential_preset: str
     """
     writer = open(sim_name+".txt", "w")
-    writer.write("# simulation settings")
-    writer.write("sim_name=" + sim_name)
-    writer.write("sim_n_steps=" + str(sim_n_steps))
-    writer.write("sim_monitoring=[Chromatin::" + str(sim_monitoring_sampling) + ";MonteCarlo::" + str(100) +
-                 ";Chromatin3D::" + str(0) + "]")
-    writer.write("\n# starting point")
-    writer.write("sim_chromatin_init=[" + sim_init_config + "]")
-    writer.write("\n monte carlo settings")
-    writer.write("mc_stepper=regular")
+    writer.write("# simulation settings\n")
+    writer.write("sim_name={0:s}\n".format(sim_name))
+    writer.write("sim_n_steps={0:d}\n".format(sim_n_steps))
+    writer.write("sim_monitoring="
+                 "[Chromatin::{0:d};MonteCarlo::{1:d};Chromatin3D::{2:d}]\n".format(100, 0, sim_monitoring_sampling))
+    writer.write("\n# starting point\n")
+    writer.write("sim_chromatin_init=[{0:s}]\n".format(sim_init_config))
+    writer.write("\n# monte carlo settings\n")
+    writer.write("mc_stepper=regular\n")
     filters = "Metropolis::1.;Collision::0."
     if eed_filter:
-        filters += ";EndToEnd::{0:s}".format(eed_filter)
-    writer.write("mc_filters=[" + filters + "]")
-    writer.write("mc_sampler_type=dna_and_proteins::0.25")
-    writer.write("mc_sampling_amplitude=" + mc_amplitude)
-    writer.write("\n# model parameters")
-    writer.write("dna_model_preset=plain_B-DNA")
-    writer.write("potential_settings_preset=" + potential_preset)
-    writer.write("\n# other parameters")
+        filters += ";EndToEnd::{0:1.1f}".format(eed_filter)
+    writer.write("mc_filters=[" + filters + "]\n")
+    writer.write("mc_sampler_type=dna_and_proteins::0.25\n")
+    writer.write("mc_sampling_amplitude={0:1.2f}\n".format(mc_amplitude))
+    writer.write("\n# model parameters\n")
+    writer.write("dna_model_preset=plain_B-DNA\n")
+    writer.write("potential_settings_preset={0:s}\n".format(potential_preset))
     if kwargs is not None:
+        writer.write("\n# other parameters\n")
         for key, arg in kwargs.items():
-            writer.write("{0:s}={1:s}".format(key, arg))
+            writer.write("{0:s}={1:s}\n".format(key, arg))
     writer.close()
 
 
