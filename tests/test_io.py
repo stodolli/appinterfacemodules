@@ -102,3 +102,7 @@ class ChromocaIOTestCase(unittest.TestCase):
         os.remove("test2_dependency.sh")
         os.remove("test3_default.sh")
         os.remove("test4_default_dependency.sh")
+
+
+if __name__ == '__main__':
+    unittest.main()

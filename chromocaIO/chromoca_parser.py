@@ -20,7 +20,7 @@ def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_ini
     """
     writer = open(sim_name+".txt", "w")
     writer.write("# simulation settings\n")
-    writer.write("sim_name={0:s}\n".format(sim_name))
+    writer.write("sim_name={0:s}\n".format(sim_name.split(".")[0]))
     writer.write("sim_n_steps={0:d}\n".format(sim_n_steps))
     writer.write("sim_monitoring="
                  "[Chromatin::{0:d};MonteCarlo::{1:d};Chromatin3D::{2:d}]\n".format(100, 0, sim_monitoring_sampling))
