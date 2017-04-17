@@ -44,6 +44,19 @@ def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_ini
     writer.close()
 
 
+def write_sim_input_file_fromkwargs(**kwargs):
+    """Generate a ChroMoCa input fule from the full list of key=value parameters.
+
+    :param sim_name:
+    :param kwargs:
+    :return:
+    """
+    writer = open(kwargs["sim_name"]+".txt", "w")
+    writer.write("# simulation settings\n")
+    for key, arg in kwargs.items():
+        writer.write("{0:s}={1:s}\n".format(key, arg))
+    writer.close()
+
 def read_sim_input_file(input_filename):
     """Read the list of parameters specified in a ChroMoCa input file.
 
@@ -56,7 +69,7 @@ def read_sim_input_file(input_filename):
     sim_lines = reader.readlines()
     reader.close()
     keyvalue_pairs = {}
-    for line in [l for l in sim_lines if "=" in l]:
+    for line in [l.strip("\n") for l in sim_lines if "=" in l]:
         splitline = line.split("=")
         keyvalue_pairs[splitline[0]] = splitline[1]
     return keyvalue_pairs

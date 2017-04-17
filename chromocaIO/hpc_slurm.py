@@ -45,8 +45,8 @@ def read_slurm_submission_file(sbatch_file_name):
     sbatch_lines = reader.readlines()
     reader.close()
     slurm_parameters = {}
-    for line in [l for l in sbatch_lines if "SBATCH" in l]:
-        splitline = line.strip("--").split("=")
+    for line in [l.strip("\n") for l in sbatch_lines if "SBATCH" in l]:
+        splitline = line.split("--")[1].split("=")
         slurm_parameters[splitline[0]] = splitline[1]
     run_command_lines = [l for l in sbatch_lines if ("#" not in l and len(l) > 1)]
     return (slurm_parameters, run_command_lines)
