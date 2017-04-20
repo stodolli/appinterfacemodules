@@ -1,12 +1,14 @@
-# README #
+# AppInterfaceModules #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+This Python3 repository contains a collection of modules and applications to facilitate the usage of the ChroMoCa 
+program.
+
 
 ### What is this repository for? ###
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* Create ChroMoCa input files in "batch" mode
+* Create and submit simulation submission files for a Slurm-based HPC cluster
+* Analyse simulation data - coming soon ...
 
 ### How do I get set up? ###
 
@@ -25,5 +27,5 @@ This README would normally document whatever steps are necessary to get your app
 
 ### Who do I talk to? ###
 
-* Repo owner or admin
-* Other community or team contact
+* Stefjord Todolli: [stefjord.todolli@rutgers.edu](mailto://stefjord.todolli@rutgers.edu)
+* Wilma Olson [group website](https://dnaserver.rutgers.edu)
