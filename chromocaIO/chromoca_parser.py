@@ -4,6 +4,7 @@
 """
 
 import numpy as np
+import ast
 
 
 def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_init_config, mc_amplitude,
@@ -90,3 +91,20 @@ def parse_eed_file(eed_file_name):
         eed_xyz = [float(n.strip()) for n in line.strip("\n").strip("{").strip("}").split(",")]
         eed_list.append(np.linalg.norm(eed_xyz))
     return eed_list
+
+
+def parse_epdistance_file(protein_frames_file_name):
+    """
+
+    :param protein_frames_file_name:
+    :return:
+    """
+    reader = open(protein_frames_file_name)
+    frame_lines = reader.readlines()
+    reader.close()
+    epdistance_list = []
+    for line in frame_lines:
+        line = line.replace('{', '[').replace('}', ']')
+        frames = ast.literal_eval(line)
+        epdistance_list.append(np.linalg.norm(np.array(frames[0][0]) - np.array(frames[-1][0])))
+    return epdistance_list

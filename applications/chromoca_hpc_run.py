@@ -37,7 +37,7 @@ if __name__ == "__main__":
     jobdir = args.scratchdir + "/${SLURM_JOBID}"
     chromoca = args.executable
     command_header = "\nmkdir {0:s}\ncd {0:s}\n".format(jobdir)
-    command_footer = "cp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)\
+    command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)\
                      + "mv slurm*.${SLURM_JOBID}.out " + origindir + "/"
     input_files = osm.get_filenames_match(args.keyword)
     submit_commands = []
@@ -54,7 +54,7 @@ if __name__ == "__main__":
             elif osm.exists(filename + ".sh"):
                 print("File '" + filename + ".sh' already exists! Skipping input file to avoid overwriting data.")
                 continue
-            run_command = "{0:s}" \
+            run_command = "{0:s}\n" \
                           "cp {1:s}/{2:s}.txt .\n" \
                           "{3:s} {2:s}.txt >> {2:s}.log\n" \
                           "tail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
@@ -124,13 +124,17 @@ if __name__ == "__main__":
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
             write_sim_input_file_fromkwargs(**chromoca_params)
+            command_post_process = "\n{0:s}_parser --rebuild-protein-frames " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
+                                   "\n{0:s}_parser --rebuild-end-to-end " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, new_filename)
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
                           "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
                           "{4:s} {2:s}.txt >> {2:s}.log\n" \
                           "tail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
-                          "{5:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
-                                         command_footer)
+                          "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
+                                              command_post_process, command_footer)
             write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
                                         args.processors)
             submit_commands.append("sbatch " + new_filename + ".sh")

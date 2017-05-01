@@ -3,59 +3,22 @@
     April 9, 2017
 """
 
-import numpy as np
 import argparse
-import bisect
+import numpy as np
 import subprocess as sys
-from chromocaIO.chromoca_parser import write_sim_input_file, parse_eed_file
+
+from chromocaIO.chromoca_parser import write_sim_input_file, parse_epdistance_file
 
 
-def chromoca_exe(sim_file):
-    sys.call(["chromoca", sim_file])
+# def chromoca_exe(sim_file):
+#     sys.call(["chromoca", sim_file])
 
 
-def chromoca_parser(snapshot_file, parse_option):
+def chromoca_ep_eed(snapshot_file):
+    parse_option = "--rebuild-protein-frames"
     sys.call(["chromoca_parser", parse_option, snapshot_file],
-             stdout = open(snapshot_file.split("/")[0] + "/endtoend.txt", "w"))
-    return snapshot_file.split("/")[0] + "/endtoend.txt"
-
-
-
-def partition_eed(eed_list, r0, breaks=[]):
-    """
-
-    :type eed_list: list
-    :type r0: int
-    :type breaks: list
-    :rtype dict
-    """
-    eed_dist = np.array(eed_list)
-    if len(breaks) == 0:
-        mean = np.mean(eed_dist)
-        stdev = np.std(eed_dist)
-        min_eed = np.min(eed_dist)
-        max_eed = np.max(eed_dist)
-        step = 25 #if mean <= 500 else 50
-        l_0 = int(np.floor(min_eed / step) * step)
-        l_n = int(np.ceil(max_eed / step) * step)
-        midpoint = int(np.ceil((mean - 2*stdev) / step) * step)
-        l_breaks = list(range(l_0, r0, step))
-        if (midpoint > r0):
-            l_breaks.extend(list(range(r0, midpoint, step)))
-        else:
-            midpoint = r0
-        l_breaks.extend(list(range(midpoint, l_n+step, int(np.floor((l_n - midpoint)/3)))))
-    else:
-        l_breaks = [int(x) for x in breaks]
-    l_intervals = [(l_breaks[i], l_breaks[i+1]) for i in range(len(l_breaks)-1)]
-    partitioned_eed = dict()
-    for l in l_intervals:
-        partitioned_eed[l] = []
-    dict_keys = sorted(list(partitioned_eed.keys()))
-    for i in range(len(eed_dist)):
-        key = dict_keys[bisect.bisect(l_breaks, eed_dist[i]) - 1]
-        partitioned_eed[key].append((i,eed_dist[i]))
-    return partitioned_eed
+             stdout = open(snapshot_file.split("/")[0] + "/" + snapshot_file.split("/")[1] + "-proteins.txt", "w"))
+    return snapshot_file.split("/")[0] + "/" + snapshot_file.split("/")[1] + "-proteins.txt"
 
 
 def get_file_offsets(file_in):
@@ -107,51 +70,73 @@ def grab_last_snapshot(snapshots_file, new_snapshot_file):
     return new_snapshot_file
 
 
+def conditional_looping_probability(r0, r1, eeds_list):
+    r0_dist = [d for d in eeds_list if d < r0]
+    r1_dist = [d for d in eeds_list if d < r1]
+    return(len(r0_dist)/len(r1_dist))
+
+
+def partition_eed_distribution(eeds_list, r0=200):
+    eeds = eeds_list.copy()
+    eeds.sort()
+    lower_bound = r0
+    upper_bound = int(np.ceil(eeds[-1]/50 * 1.15)) * 50
+    #print(lower_bound, upper_bound)
+    limits = []
+    lb = lower_bound
+    for l in range(lower_bound + 10, upper_bound, 10):
+        if conditional_looping_probability(lb, l, eeds) < 0.22:
+            limits.append(l)
+            lb = l
+    if conditional_looping_probability(limits[-1], upper_bound, eeds) > 0.5 and limits[-1] != upper_bound:
+        limits[-1] = upper_bound
+    else:
+        limits.append(upper_bound)
+    short_config_eed = np.max([d for d in eeds_list if d<r0])
+    short_config_index = eeds_list.index(short_config_eed)
+    #print(short_config_index)
+    return(short_config_index, limits)
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--initial-eed-file", dest="init_eed_file",
-                        help="End-to-end distances file from the initial chromatin distribution")
+                        help="EP protein distances file from the initial chromatin distribution")
     parser.add_argument("--snapshots-file", dest="snapshots_file",
                         help="File containing configuration snapshots (trajectories) as separate lines.")
     parser.add_argument("--mc-amplitude", dest="mc_amplitude", help="Amplitude to use for MC simulations.")
-    parser.add_argument("--partition-breaks", dest="partition_breaks", nargs = "*",
-                        help="The breaks to use to partition the eed distributions.")
+    #parser.add_argument("--partition-breaks", dest="partition_breaks", nargs = "*",
+    #                    help="The breaks to use to partition the eed distributions.")
     args = parser.parse_args()
 
-    eeds = parse_eed_file(args.init_eed_file)
-    if args.partition_breaks is None:
-        partitioned_eeds = partition_eed(eeds, 200)
-    else:
-        partitioned_eeds = partition_eed(eeds, 200, args.partition_breaks)
-
-    sim_name_base = args.snapshots_file.split("--")[0]
-    init_interval = sorted(partitioned_eeds.keys())[0]
-    init_index = sorted(partitioned_eeds[init_interval], key=lambda x: x[1])[0][0]
-    snapshot_file_offsets = get_file_offsets(args.snapshots_file)
-    init_config = get_config_snapshot(args.snapshots_file,
-                                      sim_name_base.strip("../") + "-r{0:03d}".format(init_interval[1]) + "-ini.txt",
-                                      init_index, snapshot_file_offsets)
-    i = 0
-    pdf = []
+    r0 = 200
+    sim_name_base = args.snapshots_file.split("-mc-")[0]
     log_output = open(sim_name_base.strip("../") + "-epc.log", "w")
-    for k in sorted(partitioned_eeds.keys()):
-        sim_name = write_sim_input_file(sim_name_base.strip("../") + "-r{0:03d}".format(init_interval[1]),
-                             int(np.sqrt(i+1) * 1000000), 200, init_config, init_interval[1], args.mc_amplitude)
-        chromoca_exe(sim_name + ".txt")
-        # parse output and calculate probabilities
-        eed_file = chromoca_parser(sim_name + "/" + sim_name + "_snapshots.txt", "--rebuild-end-to-end")
-        eeds = parse_eed_file(eed_file)
-        p = len([d for d in eeds if d < init_interval[0]]) / len(eeds)
-        pdf.append((init_interval[0], p))
-        log_output.write("p({0:1d}\{1:1d}): {2:6.5f}".format(init_interval[0], init_interval[1], p) + "\n")
-        i += 1
-        if (i >= len(sorted(partitioned_eeds.keys()))):
-            break
-        init_interval = sorted(partitioned_eeds.keys())[i]
-        #init_index = sorted(partitioned_eeds[init_interval], key=lambda x: x[1])[0][0]
-        #init_config = get_config_snapshot(args.snapshots_file,
-        #                                  sim_name_base.strip("../") + "-r{0:03d}".format(init_interval[1]) + "-ini.txt",
-        #                                  init_index, snapshot_file_offsets)
-        init_config = grab_last_snapshot(sim_name + "/" + sim_name + "_snapshots.txt",
-                                         sim_name_base.strip("../") + "-r{0:03d}".format(init_interval[1]) + "-ini.txt")
+
+    eeds = parse_epdistance_file(args.init_eed_file)
+    (init_config_index, limits) = partition_eed_distribution(eeds, r0)
+    log_output.write("Limits and estimated probabilities from initial distribution:\n   " + str(limits) + "\n")
+    log_output.write("P[{0:1d}|{1:1d}]: ".format(r0, limits[0]))
+    log_output.write(str(conditional_looping_probability(r0, limits[0], eeds)) + "\n")
+    for i in range(len(limits)-1):
+        log_output.write("P[{0:1d}|{1:1d}]: ".format(limits[i], limits[i+1]))
+        log_output.write(str(conditional_looping_probability(limits[i], limits[i+1], eeds)) + "\n")
+    log_output.write("   Errors:\nP[{0:1d}|{1:1d}]: ".format(r0-25, limits[0]))
+    log_output.write(str(conditional_looping_probability(r0-25, limits[0], eeds)) + ";  ")
+    log_output.write("P[{0:1d}|{1:1d}]: ".format(r0+25, limits[0]))
+    log_output.write(str(conditional_looping_probability(r0+25, limits[0], eeds)) + "\n\n")
+
+    snapshot_file_offsets = get_file_offsets(args.snapshots_file)
+    init_config = get_config_snapshot(args.snapshots_file, sim_name_base.strip("../") + "-epc-ini.txt",
+                                      init_config_index, snapshot_file_offsets)
+
+    for l in limits:
+        sim_name = sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l)
+        write_sim_input_file(sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l), 5000000, 200,
+                                        init_config, float(args.mc_amplitude), "monovalent_vasily", l)
+        #log_output.write("p({0:1d}\{1:1d}): {2:6.5f}".format(init_interval[0], init_interval[1], p) + "\n")
+        log_output.write("\nChroMoCa file " + sim_name + " created, starting with " + init_config + " configuration.")
+        init_config = sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l) + "/" + sim_name_base.strip("../") +\
+                      "-r{0:04d}--mc1_last-snapshot.txt".format(l)
     log_output.close()
