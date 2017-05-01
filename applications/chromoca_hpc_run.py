@@ -23,6 +23,7 @@ if __name__ == "__main__":
                         help="Memory (in MB) requirement for Slurm. (default 1000)")
     parser.add_argument("-p", "--processors", type=int, default=1,
                         help="Number of processors requirement for Slurm. (default 1)")
+    parser.add_argument("--sim_n_steps", type=int, help="Number of MC steps for the new simulation.")
     # parser.add_argument("--directory", type=str, default=".",
     #                     help="Directory that contains ChroMoCa input files. (defaults to current directory)")
     parser.add_argument("--scratchdir", type=str, default="/scratch/st468",
@@ -39,7 +40,7 @@ if __name__ == "__main__":
     command_header = "\nmkdir {0:s}\ncd {0:s}\n".format(jobdir)
     command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)\
                      + "mv slurm*.${SLURM_JOBID}.out " + origindir + "/"
-    input_files = osm.get_filenames_match(args.keyword)
+    input_files = [f for f in osm.get_filenames_match(args.keyword) if ".txt" in f]
     submit_commands = []
 
     # Case 1 - initial burn-in run. All ChroMoCa input files are present.
@@ -101,7 +102,7 @@ if __name__ == "__main__":
     # Case 3 - Monte Carlo run. Depending on followup argument number, could be based on a thermalized burn-in run, or
     # could be a continuation (followup) of a previous MC run.
     elif args.jobtype == "mc":
-        print("MC runs. Round " + str(args.followup) + "!")
+        print("MC runs. Round " + "1" if args.followup is None else str(args.followup) + "!")
         for file in input_files:
             existing_filename = file.split(".")[0]
             if args.followup is None:
@@ -123,10 +124,12 @@ if __name__ == "__main__":
             chromoca_params = read_sim_input_file(file)
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
+            if args.sim_n_steps is not None:
+                chromoca_params["sim_n_steps"] = "{0:d}".format(args.sim_n_steps)
             write_sim_input_file_fromkwargs(**chromoca_params)
             command_post_process = "\n{0:s}_parser --rebuild-protein-frames " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
-                                   "\n{0:s}_parser --rebuild-end-to-end " \
+                                   "{0:s}_parser --rebuild-end-to-end " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, new_filename)
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
