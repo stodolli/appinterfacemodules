@@ -38,8 +38,8 @@ if __name__ == "__main__":
     jobdir = args.scratchdir + "/${SLURM_JOBID}"
     chromoca = args.executable
     command_header = "\nmkdir {0:s}\ncd {0:s}\n".format(jobdir)
-    command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)\
-                     + "mv slurm*.${SLURM_JOBID}.out " + origindir + "/"
+    command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)
+                     #+ "mv slurm*.${SLURM_JOBID}.out " + origindir + "/"
     input_files = [f for f in osm.get_filenames_match(args.keyword) if ".txt" in f]
     submit_commands = []
 
@@ -79,10 +79,12 @@ if __name__ == "__main__":
             elif osm.exists(new_filename + ".txt"):
                 print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
                 continue
-            starting_config = "{0:s}/{0:s}_last-snapshot.txt".format(existing_filename)
+            starting_config = "{0:s}/{1:s}/{1:s}_last-snapshot.txt".format(origindir, existing_filename)
             chromoca_params = read_sim_input_file(file)
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
+            if args.sim_n_steps is not None:
+                chromoca_params["sim_n_steps"] = "{0:d}".format(args.sim_n_steps)
             write_sim_input_file_fromkwargs(**chromoca_params)
             (slurm_params, slurm_run_commands) = read_slurm_submission_file(existing_filename + ".sh")
             slurm_runtime = slurm_params["time"]
@@ -90,8 +92,7 @@ if __name__ == "__main__":
             slurm_procs = slurm_params["ntasks"]
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
-                          "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
-                          "{4:s} {2:s}.txt >> {2:s}.log\n" \
+                          "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
                           "tail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
                           "{5:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
                                          command_footer)
@@ -120,22 +121,22 @@ if __name__ == "__main__":
             elif osm.exists(new_filename + ".txt"):
                 print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
                 continue
-            starting_config = "{0:s}/{0:s}_last-snapshot.txt".format(existing_filename)
+            starting_config = "{0:s}/{1:s}/{1:s}_last-snapshot.txt".format(origindir, existing_filename)
             chromoca_params = read_sim_input_file(file)
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
             if args.sim_n_steps is not None:
                 chromoca_params["sim_n_steps"] = "{0:d}".format(args.sim_n_steps)
             write_sim_input_file_fromkwargs(**chromoca_params)
-            command_post_process = "\n{0:s}_parser --rebuild-protein-frames " \
+            command_post_process = "{0:s}_parser --rebuild-protein-frames " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
                                    "{0:s}_parser --rebuild-end-to-end " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, new_filename)
+            # "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
-                          "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
-                          "{4:s} {2:s}.txt >> {2:s}.log\n" \
-                          "tail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
+                          "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
+                          "\ntail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
                           "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
                                               command_post_process, command_footer)
             write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
