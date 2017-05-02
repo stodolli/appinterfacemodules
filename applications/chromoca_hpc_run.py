@@ -81,7 +81,8 @@ if __name__ == "__main__":
             elif osm.exists(new_filename + ".txt"):
                 print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
                 continue
-            starting_config = "{0:s}/{1:s}/{1:s}_last-snapshot.txt".format(origindir, existing_filename)
+            # starting_config = "{0:s}/{1:s}/{1:s}_last-snapshot.txt".format(origindir, existing_filename)
+            starting_config = "{0:s}_last-snapshot.txt".format(existing_filename)
             chromoca_params = read_sim_input_file(file)
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
@@ -123,7 +124,7 @@ if __name__ == "__main__":
             elif osm.exists(new_filename + ".txt"):
                 print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
                 continue
-            starting_config = "{0:s}/{1:s}/{1:s}_last-snapshot.txt".format(origindir, existing_filename)
+            starting_config = "{0:s}_last-snapshot.txt".format(existing_filename)
             chromoca_params = read_sim_input_file(file)
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
