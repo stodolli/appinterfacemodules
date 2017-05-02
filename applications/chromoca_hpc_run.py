@@ -38,13 +38,15 @@ if __name__ == "__main__":
     jobdir = args.scratchdir + "/${SLURM_JOBID}"
     chromoca = args.executable
     command_header = "\nmkdir {0:s}\ncd {0:s}\n".format(jobdir)
-    command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)
+    command_footer = "\nrm {0:s}/*_last-snapshot.txt\ncp -r {0:s}/* {1:s}/\n" \
+                     "cd ..\nrm -r {0:s}\n".format(jobdir, origindir)
                      #+ "mv slurm*.${SLURM_JOBID}.out " + origindir + "/"
     input_files = [f for f in osm.get_filenames_match(args.keyword) if ".txt" in f]
     submit_commands = []
 
     # Case 1 - initial burn-in run. All ChroMoCa input files are present.
     if args.jobtype == "burn-in" and args.followup is None:
+        command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)
         print("Initial burn-in runs. Complete ChroMoCa input files expected.")
         for file in input_files:
             filename = file.split(".")[0]
@@ -132,9 +134,9 @@ if __name__ == "__main__":
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
                                    "{0:s}_parser --rebuild-end-to-end " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, new_filename)
-            # "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
+                          "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
                           "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
                           "\ntail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
                           "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
