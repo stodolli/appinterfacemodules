@@ -6,6 +6,7 @@
 import unittest, os
 from chromocaIO.hpc_slurm import write_slurm_submission_file
 
+
 class ChromocaIOTestCase(unittest.TestCase):
 
     def setUp(self):

@@ -94,7 +94,6 @@ def partition_eed_distribution(eeds_list, r0=200):
         limits.append(upper_bound)
     short_config_eed = np.max([d for d in eeds_list if d<r0])
     short_config_index = eeds_list.index(short_config_eed)
-    #print(short_config_index)
     return(short_config_index, limits)
 
 
@@ -135,8 +134,7 @@ if __name__ == "__main__":
         sim_name = sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l)
         write_sim_input_file(sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l), 5000000, 200,
                                         init_config, float(args.mc_amplitude), "monovalent_vasily", l)
-        #log_output.write("p({0:1d}\{1:1d}): {2:6.5f}".format(init_interval[0], init_interval[1], p) + "\n")
         log_output.write("\nChroMoCa file " + sim_name + " created, starting with " + init_config + " configuration.")
         init_config = sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l) + "/" + sim_name_base.strip("../") +\
-                      "-r{0:04d}--mc1_last-snapshot.txt".format(l)
+                      "-r{0:04d}--mc_last-snapshot.txt".format(l)
     log_output.close()

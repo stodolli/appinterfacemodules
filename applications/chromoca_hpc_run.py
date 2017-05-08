@@ -24,8 +24,6 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--processors", type=int, default=1,
                         help="Number of processors requirement for Slurm. (default 1)")
     parser.add_argument("--sim_n_steps", type=int, help="Number of MC steps for the new simulation.")
-    # parser.add_argument("--directory", type=str, default=".",
-    #                     help="Directory that contains ChroMoCa input files. (defaults to current directory)")
     parser.add_argument("--scratchdir", type=str, default="/scratch/st468",
                         help="Scratch directory for cluster user. (default is /scratch/st468)")
     parser.add_argument("--executable", type=str, default="/home/st468/local_installs/chromatin/bin/chromoca",
@@ -40,7 +38,6 @@ if __name__ == "__main__":
     command_header = "\nmkdir {0:s}\ncd {0:s}\n".format(jobdir)
     command_footer = "\nrm {0:s}/*_last-snapshot.txt\ncp -r {0:s}/* {1:s}/\n" \
                      "cd ..\nrm -r {0:s}\n".format(jobdir, origindir)
-                     #+ "mv slurm*.${SLURM_JOBID}.out " + origindir + "/"
     input_files = [f for f in osm.get_filenames_match(args.keyword) if ".txt" in f]
     submit_commands = []
 

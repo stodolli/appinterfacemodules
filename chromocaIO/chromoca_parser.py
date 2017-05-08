@@ -58,6 +58,7 @@ def write_sim_input_file_fromkwargs(**kwargs):
         writer.write("{0:s}={1:s}\n".format(key, arg))
     writer.close()
 
+
 def read_sim_input_file(input_filename):
     """Read the list of parameters specified in a ChroMoCa input file.
 
