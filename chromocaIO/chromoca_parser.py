@@ -109,3 +109,20 @@ def parse_epdistance_file(protein_frames_file_name):
         frames = ast.literal_eval(line)
         epdistance_list.append(np.linalg.norm(np.array(frames[0][0]) - np.array(frames[-1][0])))
     return epdistance_list
+
+
+def parse_protein_frames(protein_frames_file_name):
+    """
+
+     :param protein_frames_file_name:
+     :return:
+     """
+    reader = open(protein_frames_file_name)
+    frame_lines = reader.readlines()
+    reader.close()
+    frames_list = []
+    for line in frame_lines:
+        line = line.replace('{', '[').replace('}', ']')
+        frames = ast.literal_eval(line)
+        frames_list.append(frames)
+    return frames_list

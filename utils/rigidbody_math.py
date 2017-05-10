@@ -13,8 +13,8 @@ GLOBAL_X = np.array([1.0, 0.0, 0.0])
 GLOBAL_Y = np.array([0.0, 1.0, 0.0])
 GLOBAL_Z = np.array([0.0, 0.0, 1.0])
 GLOBAL_FRAME = [GLOBAL_O, [GLOBAL_X, GLOBAL_Y, GLOBAL_Z]]
-Cos = np.cos()
-Sin = np.sin()
+Cos = np.cos
+Sin = np.sin
 
 
 def frame_axes_matrix(frame):
@@ -87,8 +87,8 @@ def rigid_body_parameters_step(frame1, frame2):
     theta2 = np.degrees(kappa * Cos((eta - zeta) / 2))
     theta3 = np.degrees(eta + zeta)
     midframe = np.dot(frame_axes_matrix(frame1), rotation_matrix_mid_step(theta1, theta2, theta3))
-    [rho1, rho2, rho3] = np.dot(midframe.T, frame_origin_vector(frame2) - frame_origin_vector(frame1))
-    return [theta1, theta2, theta3, rho1, rho2, rho3]
+    [rho1, rho2, rho3] = np.dot(midframe.T, frame_origin_vector(frame2) - frame_origin_vector(frame1)).tolist()
+    return [rho1, rho2, rho3, theta1, theta2, theta3]
 
 
 def rigid_body_parameters_steps_list(frames):
@@ -98,23 +98,23 @@ def rigid_body_parameters_steps_list(frames):
     return rgb_parameters
 
 
-def RebuildFrame(rgb_parameters, frame0=GLOBAL_FRAME):
-    rotmat = rotation_matrix_D(*rgb_parameters[:3].flatten())
+def rebuild_frame(rgb_parameters, frame0=GLOBAL_FRAME):
+    rotmat = rotation_matrix_D(*rgb_parameters[3:].flatten())
     axes = np.dot(frame_axes_matrix(frame0), rotmat).T
-    rotmat = rotation_matrix_mid_step(*rgb_parameters[:3].flatten())
+    rotmat = rotation_matrix_mid_step(*rgb_parameters[3:].flatten())
     origin = np.dot(np.dot(frame_axes_matrix(frame0), rotmat),
-                    rgb_parameters[3:].flatten()) + frame_origin_vector(frame0)
-    return [origin, axes]
+                    rgb_parameters[:3].flatten()) + frame_origin_vector(frame0)
+    return [origin.tolist(), axes.tolist()]
 
 
-def RebuildFrames(rgb_parameters_list, frame0=GLOBAL_FRAME):
+def rebuild_frames(rgb_parameters_list, frame0=GLOBAL_FRAME):
     frames = [frame0] * (len(rgb_parameters_list) + 1)
     for _i in range(len(rgb_parameters_list)):
-        frames[_i + 1] = RebuildFrame(rgb_parameters_list[_i], frames[_i])
+        frames[_i + 1] = rebuild_frame(rgb_parameters_list[_i], frames[_i])
     return frames
 
 
-def FramesTransformationMatrices(frame1, frame2):
+def frames_transformation_matrices(frame1, frame2):
     rotmat = np.dot(np.linalg.inv(np.array(frame1[1])), np.array(frame2[1]))
     tvect = frame_origin_vector(frame2) - frame_origin_vector(frame1)
     return (tvect, rotmat)
