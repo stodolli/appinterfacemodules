@@ -92,7 +92,7 @@ def partition_eed_distribution(eeds_list, r0=200):
         limits[-1] = upper_bound
     else:
         limits.append(upper_bound)
-    short_config_eed = np.max([d for d in eeds_list if d<r0])
+    short_config_eed = np.median([d for d in eeds_list if d<r0])
     short_config_index = eeds_list.index(short_config_eed)
     return(short_config_index, limits)
 
@@ -110,8 +110,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     r0 = 200
-    sim_name_base = args.snapshots_file.split("-mc-")[0]
-    log_output = open(sim_name_base.strip("../") + "-epc.log", "w")
+    sim_name_base = args.snapshots_file.split("/")[-1].split("--mc")[0]
+    log_output = open(sim_name_base + "-epc.log", "w")
 
     eeds = parse_epdistance_file(args.init_eed_file)
     (init_config_index, limits) = partition_eed_distribution(eeds, r0)
@@ -127,14 +127,13 @@ if __name__ == "__main__":
     log_output.write(str(conditional_looping_probability(r0+25, limits[0], eeds)) + "\n\n")
 
     snapshot_file_offsets = get_file_offsets(args.snapshots_file)
-    init_config = get_config_snapshot(args.snapshots_file, sim_name_base.strip("../") + "-epc-ini.txt",
+    init_config = get_config_snapshot(args.snapshots_file, sim_name_base + "-epc-ini.txt",
                                       init_config_index, snapshot_file_offsets)
 
     for l in limits:
-        sim_name = sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l)
-        write_sim_input_file(sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l), 5000000, 200,
-                                        init_config, float(args.mc_amplitude), "monovalent_vasily", l)
+        sim_name = sim_name_base + "-r{0:04d}--mc1".format(l)
+        write_sim_input_file(sim_name, 5000000, 200, init_config, float(args.mc_amplitude), "monovalent_vasily", l)
         log_output.write("\nChroMoCa file " + sim_name + " created, starting with " + init_config + " configuration.")
-        init_config = sim_name_base.strip("../") + "-r{0:04d}--mc1".format(l) + "/" + sim_name_base.strip("../") +\
+        init_config = sim_name_base + "-r{0:04d}--mc".format(l) + "/" + sim_name_base +\
                       "-r{0:04d}--mc_last-snapshot.txt".format(l)
     log_output.close()
