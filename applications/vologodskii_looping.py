@@ -92,8 +92,11 @@ def partition_eed_distribution(eeds_list, r0=200):
         limits[-1] = upper_bound
     else:
         limits.append(upper_bound)
-    short_config_eed = np.median([d for d in eeds_list if d<r0])
-    short_config_index = eeds_list.index(short_config_eed)
+    indexed_short_eeds = [(i, eeds_list[i]) for i in range(len(eeds_list)) if eeds_list[i] < r0]
+    indexed_short_eeds.sort(key=lambda ieed: ieed[1])
+    short_config_index = indexed_short_eeds[int(round(len(indexed_short_eeds)/2))][0]
+    #short_config_eed = np.median([d for d in eeds_list if d<r0])
+    #short_config_index = eeds_list.index(short_config_eed)
     return(short_config_index, limits)
 
 
