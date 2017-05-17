@@ -119,7 +119,7 @@ if __name__ == "__main__":
                                    "{0:s}_parser --rebuild-end-to-end " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, filename)
             chromoca_params = read_sim_input_file(file)
-            init_config = chromoca_params["sim_chromatin_init"].split("::").strip("]")
+            init_config = chromoca_params["sim_chromatin_init"].split("::")[1].rstrip("]")
             run_command = "{0:s}\n" \
                           "cp {1:s}/{2:s}.txt .\n" \
                           "cp {1:s}/{3:s} .\n" \
