@@ -100,10 +100,43 @@ if __name__ == "__main__":
                                         slurm_procs)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
-    # Case 3 - Monte Carlo run. Depending on followup argument number, could be based on a thermalized burn-in run, or
+    # Case 3 - Monte Carlo run. Similar to initial burn-in runs, is based on an existing input file. Mainly used for
+    # initial step of a conditional sampling run for now.
+    elif args.jobtype == "mc" and args.followup is None:
+        print("MC run. Round 1!")
+        command_footer = "\ncp -r {0:s}/* {1:s}/\ncd ..\nrm -r {0:s}\n".format(jobdir, origindir)
+        for file in input_files:
+            filename = file.split(".")[0]
+            if osm.exists(filename):
+                print("Directory '" + filename + "' already exists! Skipping input file to avoid overwriting existing "
+                                                "simulation data ...")
+                continue
+            elif osm.exists(filename + ".sh"):
+                print("File '" + filename + ".sh' already exists! Skipping input file to avoid overwriting data.")
+                continue
+            command_post_process = "{0:s}_parser --rebuild-protein-frames " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
+                                   "{0:s}_parser --rebuild-end-to-end " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, filename)
+            chromoca_params = read_sim_input_file(file)
+            init_config = chromoca_params["sim_chromatin_init"].split("::").rstrip("]")
+            run_command = "{0:s}\n" \
+                          "cp {1:s}/{2:s}.txt .\n" \
+                          "cp {1:s}/{3:s} .\n" \
+                          "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
+                          "\ntail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
+                          "{5:s}{6:s}".format(command_header, origindir, filename, init_config, chromoca,
+                                              command_post_process, command_footer)
+            write_slurm_submission_file(filename+".sh", filename, args.runtime, args.memory, run_command,
+                                        args.processors)
+            submit_commands.append("sbatch " + filename + ".sh")
+
+
+    # Case 4 - Monte Carlo run. Depending on followup argument number, could be based on a thermalized burn-in run, or
     # could be a continuation (followup) of a previous MC run.
-    elif args.jobtype == "mc":
-        print("MC runs. Round " + "1" if args.followup is None else str(args.followup) + "!")
+    elif args.jobtype == "mc" and args.followup is not None:
+        #print("MC runs. Round " + ("1" if args.followup is None else str(args.followup)) + "!")
+        print("MC runs. Round " + str(args.followup) + "!")
         for file in input_files:
             existing_filename = file.split(".")[0]
             if args.followup is None:
@@ -131,7 +164,8 @@ if __name__ == "__main__":
             command_post_process = "{0:s}_parser --rebuild-protein-frames " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
                                    "{0:s}_parser --rebuild-end-to-end " \
-                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca, new_filename)
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca,
+                                                                                                   new_filename)
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
                           "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
@@ -143,7 +177,7 @@ if __name__ == "__main__":
                                         args.processors)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
-    # Case 4 - Simulated Annealing run
+    # Case 5 - Simulated Annealing run
     elif args.jobtype == "sa":
         print("Simulated annealing run not implemented yet!")
         quit()

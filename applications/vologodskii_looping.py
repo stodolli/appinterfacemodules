@@ -130,13 +130,13 @@ if __name__ == "__main__":
     log_output.write(str(conditional_looping_probability(r0+25, limits[0], eeds)) + "\n\n")
 
     snapshot_file_offsets = get_file_offsets(args.snapshots_file)
-    init_config = get_config_snapshot(args.snapshots_file, sim_name_base + "-epc-ini.txt",
-                                      init_config_index, snapshot_file_offsets)
+    init_config = "[snapshot::" + get_config_snapshot(args.snapshots_file, sim_name_base + "-epc-ini.txt",
+                                                      init_config_index, snapshot_file_offsets) + "]"
 
     for l in limits:
         sim_name = sim_name_base + "-r{0:04d}--mc1".format(l)
         write_sim_input_file(sim_name, 5000000, 200, init_config, float(args.mc_amplitude), "monovalent_vasily", l)
         log_output.write("\nChroMoCa file " + sim_name + " created, starting with " + init_config + " configuration.")
-        init_config = sim_name_base + "-r{0:04d}--mc".format(l) + "/" + sim_name_base +\
-                      "-r{0:04d}--mc_last-snapshot.txt".format(l)
+        init_config = "[snapshot::{0:s}" + sim_name_base + "-r{0:04d}--mc".format(l) + "/" + sim_name_base +\
+                      "-r{0:04d}--mc_last-snapshot.txt]".format(l)
     log_output.close()
