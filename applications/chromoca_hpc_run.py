@@ -92,6 +92,7 @@ if __name__ == "__main__":
             slurm_procs = slurm_params["ntasks"]
             run_command = "{0:s}" \
                           "cp {1:s}/{2:s}.txt .\n" \
+                          "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
                           "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
                           "tail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
                           "{5:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
