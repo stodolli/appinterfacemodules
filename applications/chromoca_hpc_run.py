@@ -136,10 +136,10 @@ if __name__ == "__main__":
     # Case 4 - Monte Carlo run. Depending on followup argument number, could be based on a thermalized burn-in run, or
     # could be a continuation (followup) of a previous MC run.
     elif args.jobtype == "mc" and args.followup is not None:
-        #print("MC runs. Round " + ("1" if args.followup is None else str(args.followup)) + "!")
         print("MC runs. Round " + str(args.followup) + "!")
         for file in input_files:
             existing_filename = file.split(".")[0]
+            # TODO: conditional statement code not covered - unused
             if args.followup is None:
                 if "burn" in existing_filename:
                     followup = 1
@@ -178,10 +178,50 @@ if __name__ == "__main__":
                                         args.processors)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
-    # Case 5 - Simulated Annealing run
-    elif args.jobtype == "sa":
-        print("Simulated annealing run not implemented yet!")
-        quit()
+    # Case 5 - Simulated Annealing run. Normally is run as a followup to a MC run, burn-in run, or another simulated
+    # annealing run.
+    elif args.jobtype == "sa" and args.followup is not None:
+        print("SA runs. Round " + str(args.followup) + "!")
+        for file in input_files:
+            existing_filename = file.split(".")[0]
+            followup = args.followup
+            new_filename = existing_filename.split("--")[0] + "--sa" + str(followup)
+            if osm.exists(new_filename):
+                print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
+                                                     "existing simulation data ...")
+                continue
+            elif osm.exists(new_filename + ".txt"):
+                print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
+                continue
+            starting_config = "{0:s}_last-snapshot.txt".format(existing_filename)
+            chromoca_params = read_sim_input_file(file)
+            chromoca_params["sim_name"] = new_filename
+            chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
+            if args.followup == 1:
+                #TODO: enter manual SA parameters for the simulation
+                chromoca_params["mc_stepper_type"] = "sa"
+            else:
+                # TODO: read SA parameters from previous run and create new ones to continue the schedule
+                pass
+            if args.sim_n_steps is not None:
+                chromoca_params["sim_n_steps"] = "{0:d}".format(args.sim_n_steps)
+            write_sim_input_file_fromkwargs(**chromoca_params)
+            command_post_process = "{0:s}_parser --rebuild-protein-frames " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
+                                   "{0:s}_parser --rebuild-end-to-end " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca,
+                                                                                                   new_filename)
+            run_command = "{0:s}" \
+                          "cp {1:s}/{2:s}.txt .\n" \
+                          "cp {1:s}/{3:s}/{3:s}_last-snapshot.txt .\n" \
+                          "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
+                          "\ntail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
+                          "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
+                                              command_post_process, command_footer)
+            write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
+                                        args.processors)
+            submit_commands.append("sbatch " + new_filename + ".sh")
+
 
     # Finish up by printing all the queuing scripts that were created
     if len(submit_commands) > 0:
