@@ -4,6 +4,7 @@
 """
 
 import argparse
+import numpy as np
 from utils.os_manager import OsManager
 from chromocaIO.hpc_slurm import write_slurm_submission_file, read_slurm_submission_file
 from chromocaIO.chromoca_parser import write_sim_input_file_fromkwargs, read_sim_input_file
@@ -24,6 +25,8 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--processors", type=int, default=1,
                         help="Number of processors requirement for Slurm. (default 1)")
     parser.add_argument("--sim_n_steps", type=int, help="Number of MC steps for the new simulation.")
+    parser.add_argument("--annealing", type=str, help="Parameters for simulated annealing simulation. "
+                                                      "(T0+schedule+reduction_factor")
     parser.add_argument("--scratchdir", type=str, default="/scratch/st468",
                         help="Scratch directory for cluster user. (default is /scratch/st468)")
     parser.add_argument("--executable", type=str, default="/home/st468/local_installs/chromatin/bin/chromoca",
@@ -197,14 +200,19 @@ if __name__ == "__main__":
             chromoca_params = read_sim_input_file(file)
             chromoca_params["sim_name"] = new_filename
             chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
-            if args.followup == 1:
-                #TODO: enter manual SA parameters for the simulation
-                chromoca_params["mc_stepper_type"] = "sa"
-            else:
-                # TODO: read SA parameters from previous run and create new ones to continue the schedule
-                pass
             if args.sim_n_steps is not None:
                 chromoca_params["sim_n_steps"] = "{0:d}".format(args.sim_n_steps)
+                sim_n_steps = args.sim_n_steps
+            else:
+                sim_n_steps = int(chromoca_params["sim_n_steps"])
+            if args.followup == 1:
+                annealing_params = [float(param) for param in args.annealing.split("+")]
+            else:
+                [t0, schedule, factor] = [float(param) for param in
+                                          chromoca_params["mc_stepper_type"].split("::")[1].split("+")]
+                t1 = t0 * np.power(factor, sim_n_steps/schedule)
+                annealing_params = [t1, schedule, factor]
+            chromoca_params["mc_stepper_type"] = "annealing::{0:1.4f}+{1:1.0f}+{2:1.2f}".format(*annealing_params)
             write_sim_input_file_fromkwargs(**chromoca_params)
             command_post_process = "{0:s}_parser --rebuild-protein-frames " \
                                    "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
