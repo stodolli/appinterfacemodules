@@ -205,7 +205,7 @@ if __name__ == "__main__":
                 sim_n_steps = args.sim_n_steps
             else:
                 sim_n_steps = int(chromoca_params["sim_n_steps"])
-            if args.followup == 1:
+            if args.followup == 1 or args.annealing is not None:
                 annealing_params = [float(param) for param in args.annealing.split("+")]
             else:
                 [t0, schedule, factor] = [float(param) for param in
