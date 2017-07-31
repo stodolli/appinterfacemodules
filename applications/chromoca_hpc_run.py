@@ -150,7 +150,7 @@ if __name__ == "__main__":
                     followup = int(existing_filename.split("--")[1].lstrip("mc")) + 1
             else:
                 followup = args.followup
-            new_filename = existing_filename.split("--")[0] + "--mc{0:2d}".format(followup)
+            new_filename = existing_filename.split("--")[0] + "--mc{0:02d}".format(followup)
             if osm.exists(new_filename):
                 print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
                                                      "existing simulation data ...")
@@ -188,7 +188,7 @@ if __name__ == "__main__":
         for file in input_files:
             existing_filename = file.split(".")[0]
             followup = args.followup
-            new_filename = existing_filename.split("--")[0] + "--sa{0:2d}".format(followup)
+            new_filename = existing_filename.split("--")[0] + "--sa{0:02d}".format(followup)
             if osm.exists(new_filename):
                 print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
                                                      "existing simulation data ...")
