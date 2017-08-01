@@ -27,6 +27,8 @@ if __name__ == "__main__":
     parser.add_argument("--sim_n_steps", type=int, help="Number of MC steps for the new simulation.")
     parser.add_argument("--annealing", type=str, help="Parameters for simulated annealing simulation. "
                                                       "(T0+schedule+reduction_factor")
+    parser.add_argument("--file_numbering_format", type=int, default=2,
+                        help="Number of digits to place for numbering of simulation files (i.e., mc1 or mc01).")
     parser.add_argument("--scratchdir", type=str, default="/scratch/st468",
                         help="Scratch directory for cluster user. (default is /scratch/st468)")
     parser.add_argument("--executable", type=str, default="/home/st468/local_installs/chromatin/bin/chromoca",
@@ -43,6 +45,7 @@ if __name__ == "__main__":
                      "cd ..\nrm -r {0:s}\n".format(jobdir, origindir)
     input_files = [f for f in osm.get_filenames_match(args.keyword) if ".txt" in f]
     submit_commands = []
+    file_num_formatter = "{0:0" + str(args.file_numbering_format) + "d}"
 
     # Case 1 - initial burn-in run. All ChroMoCa input files are present.
     if args.jobtype == "burn-in" and args.followup is None:
@@ -150,7 +153,7 @@ if __name__ == "__main__":
                     followup = int(existing_filename.split("--")[1].lstrip("mc")) + 1
             else:
                 followup = args.followup
-            new_filename = existing_filename.split("--")[0] + "--mc{0:02d}".format(followup)
+            new_filename = existing_filename.split("--")[0] + "--mc" + file_num_formatter.format(followup)
             if osm.exists(new_filename):
                 print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
                                                      "existing simulation data ...")
@@ -188,7 +191,7 @@ if __name__ == "__main__":
         for file in input_files:
             existing_filename = file.split(".")[0]
             followup = args.followup
-            new_filename = existing_filename.split("--")[0] + "--sa{0:02d}".format(followup)
+            new_filename = existing_filename.split("--")[0] + "--sa" + file_num_formatter.format(followup)
             if osm.exists(new_filename):
                 print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
                                                      "existing simulation data ...")
