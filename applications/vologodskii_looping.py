@@ -134,7 +134,7 @@ if __name__ == "__main__":
                                                       init_config_index, snapshot_file_offsets) + "]"
 
     for l in limits:
-        sim_name = sim_name_base + "-r{0:04d}--mc1".format(l)
+        sim_name = sim_name_base + "-r{0:04d}--mc01".format(l)
         write_sim_input_file(sim_name, 5000000, 200, init_config, float(args.mc_amplitude), "monovalent_vasily", l)
         log_output.write("\nChroMoCa file " + sim_name + " created, starting with " + init_config + " configuration.")
         init_config = "[snapshot::{0:s}" + sim_name_base + "-r{0:04d}--mc".format(l) + "/" + sim_name_base +\
