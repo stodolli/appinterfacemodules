@@ -1,6 +1,7 @@
 CREATE TABLE simulations (
   simulation_id INTEGER PRIMARY KEY,
   simulation_description TEXT NOT NULL,
+  simulation_part INTEGER,
   nrl INTEGER NOT NULL,
   dnasteps_num INTEGER NOT NULL,
   proteins_num INTEGER NOT NULL,
@@ -13,7 +14,8 @@ CREATE TABLE simulations (
   dna_model_preset TEXT,
   potential_model_preset TEXT,
   endtoend_dist_filter REAL,
-  timestamp DATETIME,
+  start_date DATETIME,
+  end_date DATETIME,
   starting_config TEXT,
   simulation_log TEXT,
   snapshots_zip_path TEXT
@@ -23,6 +25,9 @@ CREATE TABLE structures (
   structure_id INTEGER PRIMARY KEY,
   simulation_id INTEGER NOT NULL,
   energy REAL NOT NULL,
+  endtoend_x REAL NOT NULL,
+  endtoend_y REAL NOT NULL,
+  endtoend_z REAL NOT NULL,
   endtoend_dist REAL NOT NULL,
   radius_gyration REAL NOT NULL,
   sedimentation_coeff REAL,
@@ -66,7 +71,7 @@ CREATE TABLE dnasteps (
 
 CREATE TABLE protein_models (
   protein_model_id INTEGER PRIMARY KEY,
-  model_name TEXT NOT NULL,
+  protein_model_name TEXT UNIQUE NOT NULL,
   model_pdb_id TEXT NOT NULL,
   dna_bpsteps_num INTEGER NOT NULL,
   binding_domain_start INTEGER NOT NULL,
