@@ -9,6 +9,7 @@ CREATE TABLE simulations (
   ep_proteins BOOLEAN NOT NULL,
   mc_simulation_type TEXT,
   mc_sampler_type TEXT NOT NULL,
+  mc_protein_sampling_frequency REAL NOT NULL,
   mc_sampling_amplitude REAL,
   mc_temperature REAL,
   dna_model_preset TEXT,
@@ -16,6 +17,7 @@ CREATE TABLE simulations (
   endtoend_dist_filter REAL,
   start_date DATETIME,
   end_date DATETIME,
+  simulation_input TEXT,
   starting_config TEXT,
   simulation_log TEXT,
   snapshots_zip_path TEXT
@@ -29,6 +31,7 @@ CREATE TABLE structures (
   endtoend_y REAL NOT NULL,
   endtoend_z REAL NOT NULL,
   endtoend_dist REAL NOT NULL,
+  ep_distance REAL,
   radius_gyration REAL NOT NULL,
   sedimentation_coeff REAL,
   total_overlap REAL,
@@ -45,7 +48,8 @@ CREATE TABLE dnasteps (
   shift REAL NOT NULL,
   slide REAL NOT NULL,
   rise REAL NOT NULL,
-  energy REAL,
+  twist_energy REAL,
+  bend_energy REAL,
   FOREIGN KEY (structure_id) REFERENCES structures(structure_id)
 );
 
@@ -118,9 +122,10 @@ CREATE TABLE proteins (
   protein_id INTEGER PRIMARY KEY,
   protein_model_id INTEGER NOT NULL,
   structure_id INTEGER NOT NULL,
+  protein_index INTEGER NOT NULL,
   origin_x REAL NOT NULL,
-  orign_y REAL NOT NULL,
-  origi_z REAL NOT NULL,
+  origin_y REAL NOT NULL,
+  origin_z REAL NOT NULL,
   x_x REAL NOT NULL,
   x_y REAL NOT NULL,
   x_z REAL NOT NULL,
@@ -134,7 +139,7 @@ CREATE TABLE proteins (
   FOREIGN KEY (structure_id) REFERENCES structures(structure_id)
 );
 
-CREATE TABLE histonetails (
+CREATE TABLE histone_tails (
   tail_id INTEGER PRIMARY KEY,
   protein_id INTEGER NOT NULL,
   histone_type TEXT NOT NULL,
@@ -148,6 +153,14 @@ CREATE TABLE histonetails (
   FOREIGN KEY (protein_id) REFERENCES proteins(protein_id)
 );
 
--- CREATE TABLE ncpoverlaps (
---
--- );
+CREATE TABLE protein_interactions (
+  interaction_id INTEGER PRIMARY KEY,
+  protein1_id INTEGER NOT NULL,
+  protein2_id INTEGER NOT NULL,
+  distance REAL NOT NULL,
+  face_overlap REAL,
+  side_overlap REAL,
+  face_side_overlap REAL,
+  FOREIGN KEY (protein1_id) REFERENCES proteins(protein_id),
+  FOREIGN KEY (protein2_id) REFERENCES proteins(protein_id)
+);
