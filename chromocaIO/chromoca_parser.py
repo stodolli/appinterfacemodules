@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-import ast
+import ast, re
 
 
 def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_init_config, mc_amplitude,
@@ -77,21 +77,16 @@ def read_sim_input_file(input_filename):
     return keyvalue_pairs
 
 
-
 def parse_eed_file(eed_file_name):
     """
 
     :type eed_file_name: str
-    :rtype list
+    :rtype iter
     """
     reader = open(eed_file_name)
     eed_lines = reader.readlines()
     reader.close()
-    eed_list = []
-    for line in eed_lines:
-        eed_xyz = [float(n.strip()) for n in line.strip("\n").strip("{").strip("}").split(",")]
-        eed_list.append(np.linalg.norm(eed_xyz))
-    return eed_list
+    return map(lambda v: ast.literal_eval(v.replace("{", "[").replace("}", "]")), eed_lines)
 
 
 def parse_epdistance_file(protein_frames_file_name):
@@ -115,14 +110,24 @@ def parse_protein_frames(protein_frames_file_name):
     """
 
      :param protein_frames_file_name:
-     :return:
+     :return: iter
      """
     reader = open(protein_frames_file_name)
     frame_lines = reader.readlines()
     reader.close()
-    frames_list = []
-    for line in frame_lines:
-        line = line.replace('{', '[').replace('}', ']')
-        frames = ast.literal_eval(line)
-        frames_list.append(frames)
-    return frames_list
+    return map(lambda p: ast.literal_eval(p.replace("{", "[").replace("}", "]")), frame_lines)
+
+
+def parse_snapshot(snapshot):
+    parsed_snapshot = snapshot.split("|")
+    [energy_term, nsteps_term, dnasteps_term, nproteins_term] = parsed_snapshot[:4]
+    proteins_terms = parsed_snapshot[4:]
+    energy = float(energy_term.split("::")[1])
+    nsteps = int(nsteps_term.split("::")[1])
+    dnasteps = ast.literal_eval(dnasteps_term.split("::")[1].replace("{", "[").replace("}", "]").replace(";", ","))
+    nproteins = int(nproteins_term.split("::")[1])
+    protein_names = [p.split("#")[0].split("[")[1] for p in proteins_terms]
+    protein_indices = [int(p.split("@")[1]) for p in proteins_terms]
+    local_tails = [ast.literal_eval(re.sub(r".*#|].*", "", p).replace("{", "[").replace("}", "]").replace("_", ","))
+                   for p in proteins_terms]
+    return(energy, nsteps, dnasteps, nproteins, protein_names, protein_indices, local_tails)

@@ -19,6 +19,7 @@ CREATE TABLE simulations (
   end_date DATETIME,
   simulation_input TEXT,
   starting_config TEXT,
+  average_steps TEXT,
   simulation_log TEXT,
   snapshots_zip_path TEXT
 );
@@ -32,7 +33,7 @@ CREATE TABLE structures (
   endtoend_z REAL NOT NULL,
   endtoend_dist REAL NOT NULL,
   ep_distance REAL,
-  radius_gyration REAL NOT NULL,
+  radius_gyration REAL,
   sedimentation_coeff REAL,
   total_overlap REAL,
   FOREIGN KEY (simulation_id) REFERENCES simulations(simulation_id)
@@ -108,6 +109,24 @@ CREATE TABLE protein_model_bpsteps (
   FOREIGN KEY (protein_model_id) REFERENCES protein_models(protein_model_id)
 );
 
+CREATE TABLE protein_model_bpframes (
+  bpframe_id INTEGER PRIMARY KEY,
+  protein_model_id INTEGER NOT NULL,
+  origin_x REAL NOT NULL,
+  origin_y REAL NOT NULL,
+  origin_z REAL NOT NULL,
+  x_x REAL NOT NULL,
+  x_y REAL NOT NULL,
+  x_z REAL NOT NULL,
+  y_x REAL NOT NULL,
+  y_y REAL NOT NULL,
+  y_z REAL NOT NULL,
+  z_x REAL NOT NULL,
+  z_y REAL NOT NULL,
+  z_z REAL NOT NULL,
+  FOREIGN KEY (protein_model_id) REFERENCES protein_models(protein_model_id)
+);
+
 CREATE TABLE protein_model_charges (
   point_charge_id INTEGER PRIMARY KEY,
   protein_model_id INTEGER NOT NULL,
@@ -135,6 +154,10 @@ CREATE TABLE proteins (
   z_x REAL NOT NULL,
   z_y REAL NOT NULL,
   z_z REAL NOT NULL,
+  entry_linker_angle_a REAL,
+  entry_linker_angle_b REAL,
+  exit_linker_angle_a REAL,
+  exit_linker_angle_b REAl,
   FOREIGN KEY (protein_model_id) REFERENCES protein_models(protein_model_id),
   FOREIGN KEY (structure_id) REFERENCES structures(structure_id)
 );
