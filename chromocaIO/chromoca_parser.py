@@ -126,7 +126,7 @@ def parse_snapshot(snapshot):
     nsteps = int(nsteps_term.split("::")[1])
     dnasteps = ast.literal_eval(dnasteps_term.split("::")[1].replace("{", "[").replace("}", "]").replace(";", ","))
     nproteins = int(nproteins_term.split("::")[1])
-    protein_names = [p.split("#")[0].split("[")[1] for p in proteins_terms]
+    protein_names = [p.split("#")[0].split("[")[1].split("]")[0] for p in proteins_terms]
     protein_indices = [int(p.split("@")[1]) for p in proteins_terms]
     local_tails = [ast.literal_eval(re.sub(r".*#|].*", "", p).replace("{", "[").replace("}", "]").replace("_", ","))
                    for p in proteins_terms]

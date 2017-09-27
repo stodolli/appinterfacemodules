@@ -94,7 +94,9 @@ CREATE TABLE protein_models (
   bindingframe_z_y REAL NOT NULL,
   bindingframe_z_z REAL NOT NULL,
   fixed_charges_num INTEGER NOT NULL,
-  mobile_charges_num INTEGER NOT NULL
+  mobile_charges_num INTEGER NOT NULL,
+  mobile_tail_charge FLOAT NOT NULL,
+  mobile_tail_map TEXT
 );
 
 CREATE TABLE protein_model_bpsteps (
