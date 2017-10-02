@@ -14,8 +14,8 @@ def tails_local_to_global_iter(protein_frame, tails_list):
     return(map(lambda x: np.dot(np.array(protein_frame[1]).T, x) + np.array(protein_frame[0]), np.array(tails_list)))
 
 
-def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapshots_file, sim_setup_file,
-                               starting_config_file, log_file, protein_frames_file, endtoend_vectors_file,
+def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, sim_setup_file, starting_config_file,
+                               log_file, snapshots_file, protein_frames_file, endtoend_vectors_file,
                                avg_steps_file, mc_temp=1.0):
     ### Open files
     snapshot_reader = open(snapshots_file)
@@ -26,10 +26,8 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
         starting_config = reader.readline().strip()
     with open(log_file) as reader:
         sim_log = reader.readlines()
-    with open(protein_frames_file) as reader:
-        protein_frames = list(parse_protein_frames(reader.readlines())) #TODO: needs to be done using mapping
-    with open(endtoend_vectors_file) as reader:
-        endtoend_vectors = list(parse_eed_file(reader.readlines()))     #TODO: needs to be done using mapping
+    protein_frames = list(parse_protein_frames(protein_frames_file)) #TODO: needs to be done using mapping
+    endtoend_vectors = list(parse_eed_file(endtoend_vectors_file))     #TODO: needs to be done using mapping
     with open(avg_steps_file) as reader:
         avg_steps = reader.readline().strip()
     #################################################################
@@ -41,7 +39,7 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
     n_dnasteps = parsed_starting_config[1]
     dnabp_num = n_dnasteps + 1
     n_proteins = parsed_starting_config[3]
-    [protein_names, protein_indices] = parsed_starting_config[4:5]
+    [protein_names, protein_indices] = parsed_starting_config[4:6]
     start_date = [l.split("=")[1] for l in sim_log if "start date" in l][0].strip()
     end_date = [l.split("=")[1] for l in sim_log if "end date" in l][-1].strip()
     protein_models_options = dbc.execute('SELECT protein_model_name, protein_model_id, binding_domain_start, '
@@ -58,22 +56,26 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
                                    'FROM protein_models WHERE protein_model_name=?', (p,)).fetchone()
                        for p in protein_names]
     ep_proteins_bool = "RNAP" in protein_names
+    endtoend_filter = None
+    if ep_proteins_bool and "EndToEnd" in sim_setup['mc_filters']:
+        endtoend_filter = float([f.split("::")[1] for f in sim_setup['mc_filters'][1:-1].split(";")
+                                 if "EndToEnd" in f][0])
     #################################################################
     ##### "Real" work
     #################################################################
     # INSERT INTO simulations
     dbc.execute('INSERT INTO simulations (simulation_description, simulation_part, '
-                'nrl, dnasteps_num, proteins_num, unbound_dnalinkers_num, ep_proteins, '
+                'nrl, dnasteps_num, proteins_num, unbound_dnalinkers_num, ep_proteins, endtoend_dist_filter, '
                 'mc_simulation_type, mc_sampler_type, mc_protein_sampling_frequency, '
                 'mc_sampling_amplitude, mc_temperature, dna_model_preset, potential_model_preset, '
                 'start_date, end_date, simulation_input, starting_config, average_steps, '
-                'simulation_log) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                'simulation_log) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
                 (#sim_setup['sim_name'].rstrip("".join([str(x) for x in range(0, 10)])),
                  sim_description,
                  int(sim_setup['sim_name'].split("--")[-1][2:]),
                  int(sim_setup['sim_name'].split("x")[0]),
                  n_dnasteps, n_proteins, len(unbound_dnasteps),
-                 ep_proteins_bool,
+                 ep_proteins_bool, endtoend_filter,
                  sim_type,
                  sim_setup['mc_sampler_type'].split("::")[0],
                  float(sim_setup['mc_sampler_type'].split("::")[1]),
@@ -94,15 +96,16 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
         if ep_proteins_bool:
             ep_dist = np.linalg.norm(np.array(protein_frames[i][0][0]) - np.array(protein_frames[i][-1][0]))
             sc = sedimentation_coefficient(protein_frames[i][1:-1])
+            rg = radius_gyration(protein_frames[i][1:-1])
         else:
             ep_dist = None
-            sedimentation_coefficient(protein_frames)
+            sc = sedimentation_coefficient(protein_frames[i])
+            rg = radius_gyration(protein_frames[i])
         # INSERT INTO structures
         dbc.execute('INSERT INTO structures (simulation_id, energy, endtoend_x, endtoend_y, endtoend_z, endtoend_dist, '
                     'ep_distance, radius_gyration, sedimentation_coeff) VALUES (?,?,?,?,?,?,?,?,?)',
                     (simulation_id, energy, endtoend_vectors[i][0], endtoend_vectors[i][1], endtoend_vectors[i][2],
-                     np.linalg.norm(endtoend_vectors[i]),
-                     ep_dist, radius_gyration(protein_names[i]), sc))
+                     np.linalg.norm(endtoend_vectors[i]), ep_dist, rg, sc))
         structure_id = dbc.lastrowid
         protein_id_list = []
         for p in range(len(protein_names)):
@@ -115,14 +118,15 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
                          x[0], x[1], x[2],
                          y[0], y[1], y[2],
                          z[0], z[1], z[2]))
-            protein_id_list.append(dbc.lastrowid)
+            curr_protein_id = dbc.lastrowid
+            protein_id_list.append(curr_protein_id)
             if mobile_charge is not None:
                 global_tails = tails_local_to_global_iter(protein_frames[i][p], local_tails[p])
                 t = 0
                 for (lt, gt) in zip(local_tails[p], global_tails):
                     # INSERT INTO histone_tails
                     dbc.execute('INSERT INTO histone_tails VALUES (NULL,?,?,?,?,?,?,?,?,?)',
-                                (dbc.lastrowid, tail_map[t], mobile_charge,
+                                (curr_protein_id, tail_map[t], mobile_charge,
                                  lt[0], lt[1], lt[2],
                                  gt[0], gt[1], gt[2]))
                     t += 1
@@ -132,7 +136,29 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
                 # INSERT INTO protein_interactions
                 dbc.execute('INSERT INTO protein_interactions VALUES (NULL,?,?,?,NULL,NULL,NULL)',
                             (protein_id_list[p1], protein_id_list[p2], distance))
-
+        protein_ids = [(protein_id_list[i], protein_id_list[i + 1]) for i in range(len(protein_id_list) - 1)]
+        for l in range(len(unbound_dnasteps)):
+            linker_index = l + 1
+            (linker_start, linker_end) = unbound_dnasteps[l]
+            linker_mid = linker_start + int(np.floor((linker_end - linker_start) / 2))
+            # INSERT INTO local_half_linkers - exit
+            dbc.execute('INSERT INTO local_half_linkers (protein_id, linker_index, linker_type) VALUES (?,?,?)',
+                        (protein_ids[l][0], linker_index, "out"))
+            linker_out_id = dbc.lastrowid
+            # INSERT INTO dnasteps
+            for step in dnasteps[linker_start: linker_mid]:
+                dbc.execute('INSERT INTO dnasteps VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?)',
+                            (structure_id, linker_out_id, linker_index,
+                             step[0], step[1], step[2], step[3], step[4], step[5], None, None))
+            # INSERT INTO local_half_linkers - entry
+            dbc.execute('INSERT INTO local_half_linkers (protein_id, linker_index, linker_type) VALUES (?,?,?)',
+                        (protein_ids[l][1], linker_index, "in"))
+            linker_out_id = dbc.lastrowid
+            # INSERT INTO dnasteps
+            for step in dnasteps[linker_mid: linker_end]:
+                dbc.execute('INSERT INTO dnasteps VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?)',
+                            (structure_id, linker_out_id, linker_index,
+                             step[0], step[1], step[2], step[3], step[4], step[5], None, None))
     #################################################################
     ### Cleanup
     snapshot_reader.close()
@@ -142,8 +168,19 @@ def add_simulation_to_sqlitedb(sqlite_db_file, sim_type, sim_description, snapsh
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--sqlitedb", type=str, help="Path of the SQLite database.")
     parser.add_argument("--simsetup", type=str, help="ChroMoCa simulation input file.")
+    parser.add_argument("--startconfig", type=str, help="File containing starting configuration (snapshot).")
+    parser.add_argument("--log", type=str, help="ChroMoCa run log file.")
     parser.add_argument("--snapshots", type=str, help="ChroMoCa snapshots file.")
     parser.add_argument("--proteins", type=str, help="ChroMoCa parsed protein global frames file.")
     parser.add_argument("--endtoend", type=str, help="End to end distances (as defined within ChroMoCa) file.")
-    parser.add_argument("--log", type=str, help="ChroMoCa run log file.")
+    parser.add_argument("--avgsteps", type=str, help="Average steps (for the simulation) file")
+    args = parser.parse_args()
+
+    simulation_type = "sa" if "--sa" in args.simsetup else "mc"
+    simulation_description = args.simsetup.split("--")[0]
+
+    add_simulation_to_sqlitedb(args.sqlitedb, simulation_type, simulation_description, args.simsetup,
+                               args.startconfig, args.log, args.snapshots, args.proteins, args.endtoend,
+                               args.avgsteps)
