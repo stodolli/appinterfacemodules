@@ -12,7 +12,7 @@ from chromocaIO.chromoca_parser import write_sim_input_file_fromkwargs, read_sim
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("jobtype", type=str, choices=["burn-in", "mc", "sa"],
+    parser.add_argument("jobtype", type=str, choices=["burn-in", "mc", "epc", "sa"],
                         help="Specify simulation type intended in the input file.")
     parser.add_argument("keyword", type=str,
                         help="Keyword to match ChroMoCa input files that will be run in the cluster.")
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--processors", type=int, default=1,
                         help="Number of processors requirement for Slurm. (default 1)")
     parser.add_argument("--sim_n_steps", type=int, help="Number of MC steps for the new simulation.")
+    parser.add_argument("--epc_constraint", type=float, help="End-to-end distance constraint for epc simulation.")
     parser.add_argument("--annealing", type=str, help="Parameters for simulated annealing simulation. "
                                                       "(T0+schedule+reduction_factor")
     parser.add_argument("--file_numbering_format", type=int, default=2,
@@ -184,7 +185,53 @@ if __name__ == "__main__":
                                         args.processors)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
-    # Case 5 - Simulated Annealing run. Normally is run as a followup to a MC run, burn-in run, or another simulated
+    # Case 5 - EPC constrained MC run.
+    # TODO all these methods need to be cleaned up!
+    elif args.jobtype == "epc" and args.followup is None and args.epc_constraint is not None:
+        followup = 1
+        print("EPC runs with distance constraint \nRound " + str(followup) + "!")
+        for file in input_files:
+            chromoca_params = read_sim_input_file(file)
+            existing_filename = file.split(".")[0]
+            new_filename = existing_filename.split("--")[0] + "-epc{0:.0f}".format(args.epc_constraint) + "--mc" + \
+                           file_num_formatter.format(followup)
+            if osm.exists(new_filename):
+                print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
+                                                     "existing simulation data ...")
+                continue
+            elif osm.exists(new_filename + ".txt"):
+                print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
+                continue
+            starting_config = "{0:s}--shortEP-snapshot.txt".format(existing_filename.split("--")[0])
+            chromoca_params["sim_name"] = new_filename
+            chromoca_params["sim_chromatin_init"] = "[snapshot::{0:s}]".format(starting_config)
+            if args.sim_n_steps is not None:
+                chromoca_params["sim_n_steps"] = "{0:d}".format(args.sim_n_steps)
+            mc_filters = chromoca_params["mc_filters"].strip("[").strip("]").split(";")
+            mc_filters.append("EndToEnd::{0:1.1f}".format(args.epc_constraint))
+            new_mc_filters = "[" + mc_filters[0]
+            for filter in mc_filters[1:]:
+                new_mc_filters += ";" + filter
+            new_mc_filters += "]"
+            chromoca_params["mc_filters"] = new_mc_filters
+            write_sim_input_file_fromkwargs(**chromoca_params)
+            command_post_process = "{0:s}_parser --rebuild-protein-frames " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_proteins.txt\n" \
+                                   "{0:s}_parser --rebuild-end-to-end " \
+                                   "{1:s}/{1:s}_snapshots.txt > {1:s}/{1:s}_endtoend.txt\n".format(chromoca,
+                                                                                                   new_filename)
+            run_command = "{0:s}" \
+                          "cp {1:s}/{2:s}.txt .\n" \
+                          "cp {1:s}/{3:s}--shortEP-snapshot.txt .\n" \
+                          "\n{4:s} {2:s}.txt >> {2:s}.log\n" \
+                          "\ntail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
+                          "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename.split("--")[0],
+                                              chromoca, command_post_process, command_footer)
+            write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
+                                        args.processors)
+            submit_commands.append("sbatch " + new_filename + ".sh")
+
+    # Case 6 - Simulated Annealing run. Normally is run as a followup to a MC run, burn-in run, or another simulated
     # annealing run.
     elif args.jobtype == "sa" and args.followup is not None:
         print("SA runs. Round " + str(args.followup) + "!")
