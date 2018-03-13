@@ -179,7 +179,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     simulation_type = "sa" if "--sa" in args.simsetup else "mc"
-    simulation_description = args.simsetup.split("--")[0]
+    simulation_description = args.simsetup.split("/")[-1].split("--")[0]
 
     add_simulation_to_sqlitedb(args.sqlitedb, simulation_type, simulation_description, args.simsetup,
                                args.startconfig, args.log, args.snapshots, args.proteins, args.endtoend,

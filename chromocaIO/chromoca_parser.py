@@ -33,7 +33,7 @@ def write_sim_input_file(sim_name, sim_n_steps, sim_monitoring_sampling, sim_ini
     if eed_filter:
         filters += ";EndToEnd::{0:1.1f}".format(eed_filter)
     writer.write("mc_filters=[" + filters + "]\n")
-    writer.write("mc_sampler_type=dna_and_proteins::0.25\n")
+    writer.write("mc_sampler_type=dna_and_proteins::0\n")
     writer.write("mc_sampling_amplitude={0:1.2f}\n".format(mc_amplitude))
     writer.write("\n# model parameters\n")
     writer.write("dna_model_preset=plain_B-DNA\n")

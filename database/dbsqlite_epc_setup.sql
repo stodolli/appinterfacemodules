@@ -228,7 +228,12 @@ CREATE TABLE protein_interactions (
   distance REAL NOT NULL,
   face_overlap REAL,
   side_overlap REAL,
-  face_side_overlap REAL,
+  face_side_overlap_ij REAL,
+  face_side_overlap_ji REAL,
+  theta1 REAL,
+  phi1 REAL,
+  theta2 REAL,
+  phi2 REAL,
   FOREIGN KEY (protein1_id) REFERENCES proteins(protein_id),
   FOREIGN KEY (protein2_id) REFERENCES proteins(protein_id)
 );
