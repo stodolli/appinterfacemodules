@@ -3,6 +3,16 @@
 CREATE TABLE protein_models (
   protein_model_id INTEGER PRIMARY KEY,
   protein_model_name TEXT UNIQUE NOT NULL,
+  protein_core_model_id INTEGER NOT NULL,
+  protein_tails_model_id INTEGER,
+  bound_dna_bpsteps_num INTEGER NOT NULL,
+  FOREIGN KEY (protein_core_model_id) REFERENCES protein_core_models(protein_core_model_id),
+  FOREIGN KEY (protein_tails_model_id) REFERENCES protein_tails_models(protein_tails_model_id)
+);
+
+CREATE TABLE protein_core_models (
+  protein_core_model_id INTEGER PRIMARY KEY,
+  protein_core_model_name TEXT UNIQUE NOT NULL,
   model_pdb_id TEXT NOT NULL,
   dna_bpsteps_num INTEGER NOT NULL,
   binding_domain_start INTEGER NOT NULL,
@@ -43,8 +53,14 @@ CREATE TABLE protein_models (
   endframe_z_x REAL,
   endframe_z_y REAL,
   endframe_z_z REAL,
+  core_charges_num INTEGER
+);
+
+CREATE TABLE protein_tails_models (
+  protein_tails_model_id INTEGER PRIMARY KEY,
+  protein_tails_model_name TEXT UNIQUE NOT NULL,
   fixed_charges_num INTEGER NOT NULL,
-  mobile_charges_num INTEGER NOT NULL,
+  mobile_charges_num FLOAT,
   mobile_tail_charge FLOAT,
   mobile_tail_map TEXT
 );
@@ -79,16 +95,25 @@ CREATE TABLE protein_model_bpframes (
   FOREIGN KEY (protein_model_id) REFERENCES protein_models(protein_model_id)
 );
 
-CREATE TABLE protein_model_charges (
+-- CREATE TABLE protein_tails_charges (
+--   point_charge_id INTEGER PRIMARY KEY,
+--   protein_tails_model_id INTEGER NOT NULL,
+--   charge REAL NOT NULL,
+--   local_x REAL NOT NULL,
+--   local_y REAL NOT NULL,
+--   local_z REAL NOT NULL,
+--   FOREIGN KEY (protein_tails_model_id) REFERENCES protein_tails_models(protein_tails_model_id)
+-- );
+
+CREATE TABLE protein_core_charges (
   point_charge_id INTEGER PRIMARY KEY,
-  protein_model_id INTEGER NOT NULL,
+  protein_core_model_id INTEGER NOT NULL,
   charge REAL NOT NULL,
   local_x REAL NOT NULL,
   local_y REAL NOT NULL,
   local_z REAL NOT NULL,
-  FOREIGN KEY (protein_model_id) REFERENCES protein_models(protein_model_id)
+  FOREIGN KEY (protein_core_model_id) REFERENCES protein_core_models(protein_core_model_id)
 );
-
 
 -- Set up simulation data
 
