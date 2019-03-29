@@ -2,6 +2,11 @@
     Stefjord Todolli
     April 13, 2017
 """
+import os, sys
+fullprojectpath = os.path.realpath(__file__).rsplit("/", 2)[0]
+if fullprojectpath not in sys.path:
+    sys.path.extend([fullprojectpath])
+
 
 import argparse
 import numpy as np
@@ -24,6 +29,8 @@ if __name__ == "__main__":
                         help="Memory (in MB) requirement for Slurm. (default 1000)")
     parser.add_argument("-p", "--processors", type=int, default=1,
                         help="Number of processors requirement for Slurm. (default 1)")
+    parser.add_argument("--partition", type=str, default="main",
+                        help="Partition in which to queue the job.")
     parser.add_argument("--sim_n_steps", type=int, help="Number of MC steps for the new simulation.")
     parser.add_argument("--epc_constraint", type=float, help="End-to-end distance constraint for epc simulation.")
     parser.add_argument("--annealing", type=str, help="Parameters for simulated annealing simulation. "
@@ -67,7 +74,7 @@ if __name__ == "__main__":
                           "tail -n1 {2:s}/{2:s}_snapshots.txt > {2:s}/{2:s}_last-snapshot.txt\n" \
                           "{4:s}".format(command_header, origindir, filename, chromoca, command_footer)
             write_slurm_submission_file(filename+".sh", filename, args.runtime, args.memory, run_command,
-                                        args.processors)
+                                        args.processors, args.partition)
             submit_commands.append("sbatch " + filename + ".sh")
 
     # Case 2 - follow up to burn-in run. Based on the followup argument number, the starting configuration will be
@@ -80,7 +87,7 @@ if __name__ == "__main__":
             new_filename = existing_filename.split("--")[0] + "--burn" + str(args.followup)
             if osm.exists(new_filename):
                 print("Directory '" + new_filename + "', already exists! Skipping input file to avoid overwriting "
-                                                "existing simulation data ...")
+                                                     "existing simulation data ...")
                 continue
             elif osm.exists(new_filename + ".txt"):
                 print("File '" + new_filename + ".txt' already exists! Skipping input file to avoid overwriting data.")
@@ -105,7 +112,7 @@ if __name__ == "__main__":
                           "{5:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
                                          command_footer)
             write_slurm_submission_file(new_filename+".sh", new_filename, slurm_runtime, slurm_memory, run_command,
-                                        slurm_procs)
+                                        slurm_procs, args.partition)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
     # Case 3 - Monte Carlo run. Similar to initial burn-in runs, is based on an existing input file. Mainly used for
@@ -136,7 +143,7 @@ if __name__ == "__main__":
                           "{5:s}{6:s}".format(command_header, origindir, filename, init_config, chromoca,
                                               command_post_process, command_footer)
             write_slurm_submission_file(filename+".sh", filename, args.runtime, args.memory, run_command,
-                                        args.processors)
+                                        args.processors, args.partition)
             submit_commands.append("sbatch " + filename + ".sh")
 
 
@@ -182,7 +189,7 @@ if __name__ == "__main__":
                           "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
                                               command_post_process, command_footer)
             write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
-                                        args.processors)
+                                        args.processors, args.partition)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
     # Case 5 - EPC constrained MC run.
@@ -228,7 +235,7 @@ if __name__ == "__main__":
                           "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename.split("--")[0],
                                               chromoca, command_post_process, command_footer)
             write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
-                                        args.processors)
+                                        args.processors, args.partition)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
     # Case 6 - Simulated Annealing run. Normally is run as a followup to a MC run, burn-in run, or another simulated
@@ -277,7 +284,7 @@ if __name__ == "__main__":
                           "{5:s}{6:s}".format(command_header, origindir, new_filename, existing_filename, chromoca,
                                               command_post_process, command_footer)
             write_slurm_submission_file(new_filename + ".sh", new_filename, args.runtime, args.memory, run_command,
-                                        args.processors)
+                                        args.processors, args.partition)
             submit_commands.append("sbatch " + new_filename + ".sh")
 
 
