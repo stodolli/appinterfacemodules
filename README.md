@@ -1,6 +1,6 @@
 # AppInterfaceModules #
 
-This Python3 repository contains a collection of modules and applications to facilitate the usage of the ChroMoCa 
+This Python3 repository contains a collection of modules and applications to facilitate the usage of the ChroMoCa
 program.
 
 
@@ -8,22 +8,8 @@ program.
 
 * Create ChroMoCa input files in "batch" mode
 * Create and submit simulation submission files for a Slurm-based HPC cluster
+* Collection of libraries to perform rigid body math analysis and reconstruction
 * Analyse simulation data - coming soon ...
-
-### How do I get set up? ###
-
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
 
 ### Who do I talk to? ###
 
